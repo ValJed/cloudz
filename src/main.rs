@@ -2,19 +2,29 @@ use std::{fs, collections::HashMap};
 use std::io::{BufReader, BufRead};
 use fs::{File};
 use regex::Regex;
+// use serde::{Serialize, Deserialize};
+
+mod structs;
+
+// https://api.openweathermap.org/data/2.5/weather?q=lyon&appId=7b5889f57c1b3f355bcf49c6f307ddc0
+const OPEN_WEATHER_URL: &str = "https://api.openweathermap.org/data/2.5";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get env file content
     let api_key = read_env_file("OPEN_WEATHER".to_string());
 
-    println!("apiKey {:?}", api_key);
+    let city = "lyon".to_string();
 
-    // let body = reqwest::get("https://httpbin.org/ip").await?
-    //     .json::<HashMap<String, String>>().await?;
-        // .text().await?;
+    let url = format!("{}/weather?q={}&appId={}", OPEN_WEATHER_URL, city, api_key);
+
+    let body: structs::ApiResponse = reqwest::get(url).await?
+        .json().await?;
+        // .json::<HashMap<String, String>>().await?;
         // .json::<HashMap<String, String>>()
         // .await?;
+
+        println!("body {:?}", body);
 
     Ok(())
 }
@@ -48,26 +58,4 @@ fn read_env_file (env_key: String) -> String {
         });
 
     api_key
-
-    // for line in reader.lines() {
-    //     let l = line.expect("Could not get line");
-    //     println!("l {:?}", l);
-
-    //     if regex.is_match(&l) {
-    //         let splitted: Vec<&str> = l.split("=").collect();
-
-    //         println!("splitted[1] {:?}", splitted[1]);
-    //         key = splitted[1].to_string();
-    //     }
-    //     // let key = match line {
-    //     //     Ok(l) => {
-    //     //         if regex.is_match(&l) {
-    //     //             let splitted: Vec<&str> = l.split("=").collect();
-
-    //     //             splitted[1];
-    //     //         }
-    //     //     },
-    //     //     Err(_) => println!("Error when reading line")
-    //     // };
-    // };
 }
