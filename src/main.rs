@@ -6,7 +6,6 @@ use regex::Regex;
 
 mod structs;
 
-// https://api.openweathermap.org/data/2.5/weather?q=lyon&appId=7b5889f57c1b3f355bcf49c6f307ddc0
 const OPEN_WEATHER_URL: &str = "https://api.openweathermap.org/data/2.5";
 
 #[tokio::main]
