@@ -1,4 +1,4 @@
-use std::{fs, collections::HashMap};
+use std::{fs};
 use std::io::{BufReader, BufRead};
 use fs::{File};
 use regex::Regex;
@@ -38,23 +38,19 @@ fn read_env_file (env_key: String) -> String {
     let regex = Regex::new(&formatted_regex)
         .expect("Regex could not be generated");
 
-    let lines: Vec<String> = reader
+    let lines = reader
         .lines()
-        .map(|l| l.unwrap())
-        .collect();
+        .map(|l| l.unwrap());
 
-    let api_key = lines
-        .into_iter()
+    lines
         // .find(|line| regex.is_match(&line)).unwrap();
         .fold(String::new(), |acc, line| {
             if regex.is_match(&line) {
-                let splitted: Vec<&str> = line.split("=").collect();
+                let splitted: Vec<&str> = line.split('=').collect();
 
                 return splitted[1].to_string();
             }
 
             acc
-        });
-
-    api_key
+        })
 }
