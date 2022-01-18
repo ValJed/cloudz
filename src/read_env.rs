@@ -4,7 +4,7 @@ use regex::Regex;
 
 pub fn get_apikey (env_key: String) -> String {
   let env_file = File::open(".env")
-      .expect("Error when opening .env file");
+      .expect("You should provide en .env file with your api key");
 
   let reader = BufReader::new(env_file);
   let formatted_regex = format!(r"^{}", env_key);
