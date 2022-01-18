@@ -2,65 +2,63 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
  pub struct ApiResponse {
-  coord: Coord,
-  weather: Vec<Weather>,
-  base: String,
-  main: Main,
-  visibility: i64,
-  wind: Wind,
-  clouds: Clouds,
-  dt: i64,
-  sys: Sys,
-  timezone: i64,
-  id: i64,
-  name: String,
-  cod: i64,
+  pub coord: Coord,
+  pub weather: Vec<Weather>,
+  pub base: String,
+  pub main: Main,
+  pub visibility: i64,
+  pub wind: Wind,
+  pub clouds: Clouds,
+  pub dt: i64,
+  pub sys: Sys,
+  pub timezone: i64,
+  pub id: i64,
+  pub name: String,
+  pub cod: i64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
- struct Coord {
-  lon: f64,
-  lat: f64,
+ pub struct Coord {
+  pub lon: f64,
+  pub lat: f64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
- struct Weather {
-  id: i64,
-  main: String,
-  description: String,
-  icon: String,
+ pub struct Weather {
+  pub id: i64,
+  pub main: String,
+  pub description: String,
+  pub icon: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
- struct Main {
-  temp: f64,
-  feels_like: f64,
-  temp_min: f64,
-  temp_max: f64,
-  pressure: i64,
-  humidity: i64,
-  sea_level: i64,
-  grnd_level: i64,
+ pub struct Main {
+  pub temp: f64,
+  pub feels_like: f64,
+  pub temp_min: f64,
+  pub temp_max: f64,
+  pub pressure: i64,
+  pub humidity: i64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
- struct Wind {
-  speed: f64,
-  deg: i64,
-  gust: f64,
+ pub struct Wind {
+  pub speed: f64,
+  pub deg: i64,
+  pub gust: f64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
- struct Clouds {
-  all: i64,
+ pub struct Clouds {
+  pub all: i64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
- struct Sys {
+ pub struct Sys {
   #[serde(rename = "type")]
-  type_field: i64,
-  id: i64,
-  country: String,
-  sunrise: i64,
-  sunset: i64,
+  pub type_field: i64,
+  pub id: i64,
+  pub country: String,
+  pub sunrise: i64,
+  pub sunset: i64,
 }
