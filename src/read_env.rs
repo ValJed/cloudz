@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use regex::Regex;
+use std::collections::HashMap;
 
 pub fn get_apikey (env_key: String) -> String {
   let env_file = File::open(".env")
@@ -14,6 +15,18 @@ pub fn get_apikey (env_key: String) -> String {
   let lines = reader
       .lines()
       .map(|l| l.unwrap());
+
+      println!("lines {:?}", lines);
+
+    let env_vars: HashMap<String, String> = HashMap::new();
+
+    // lines.map(|line| {
+    //     println!("line {:?}", line);
+
+
+
+    //     "toto".to_string()
+    // })
 
   lines
       // .find(|line| regex.is_match(&line)).unwrap();
