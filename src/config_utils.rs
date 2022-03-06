@@ -3,7 +3,7 @@ use std::io::{BufReader, BufRead};
 use regex::Regex;
 use std::collections::HashMap;
 
-pub fn get_config (keys: [String; 2]) -> HashMap<String, String>{
+pub fn get_config (keys: [String; 2]) -> HashMap<String, String> {
     let env_file = File::open(".env")
         .expect("You should provide en .env file with your config");
 

@@ -6,7 +6,7 @@ mod config_utils;
 use config_utils::get_config;
 use structs::ApiResponse;
 use colored::Colorize;
-// use std::collections::HashMap;
+use std::collections::HashMap;
 use std::env;
 
 const OPEN_WEATHER_URL: &str = "https://api.openweathermap.org/data/2.5";
@@ -49,21 +49,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let body: structs::ApiResponse = reqwest::get(url).await?
         .json().await?;
 
-    let res = print_weather(body);
+    let data_to_print = extract_data(body);
+
+    println!("data&_to_print {:?}", data_to_print);
+
+    print_weather(data_to_print);
 
     Ok(())
 }
 
-// fn extractResData (res: ApiResponse) {
-//     let datas = HashMap::new();
+fn extract_data (data: ApiResponse) -> HashMap<String, String> {
+    let mut datas = HashMap::new();
 
-//     datas.insert("City", res.name);
-//     datas.insert("Weather", res.name);
-//     datas.insert("City", res.name);
-//     datas.insert("City", res.name);
-//     datas.insert("City", res.name);
-//     datas.insert("City", res.name);
-// }
+    datas.insert("City".into(), data.name);
+    datas.insert("Weather".into(), data.weather.first().unwrap().description.to_string());
+    datas.insert("Temperature".into(), data.main.temp.to_string());
+    datas.insert("Coordinates".into(), format!("lon {}, lat {}", data.coord.lon, data.coord.lat));
+
+    datas
+}
 
 fn print_weather (current: ApiResponse) {
     println!(
