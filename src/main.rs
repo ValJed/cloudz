@@ -1,12 +1,12 @@
 // use serde::{Serialize, Deserialize};
 
 mod structs;
-mod read_env;
+mod config_utils;
 
-use read_env::get_apikey;
+use config_utils::get_config;
 use structs::ApiResponse;
 use colored::Colorize;
-use std::collections::HashMap;
+// use std::collections::HashMap;
 use std::env;
 
 const OPEN_WEATHER_URL: &str = "https://api.openweathermap.org/data/2.5";
@@ -16,12 +16,26 @@ const LANG: &str = "fr";
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    let city = &args[1];
+    let config_keys = [
+        "OPEN_WEATHER".to_string(),
+        "CITY".to_string()
+    ];
 
-    // Get env file content
-    let api_key = get_apikey("OPEN_WEATHER".to_string());
+    // Get config file content
+    let config_keys = get_config(config_keys);
 
-    let city = "lyon".to_string();
+    let api_key = config_keys.get("OPEN_WEATHER")
+        .expect("Get api key in config");
+
+    // Gets city name from command line argument or from config file
+    let city = if args.len() > 1 { args[1].to_string() } else {
+        let city_from_config = config_keys.get("CITY")
+        .expect("Should find a default city in config if none is passed as argument.");
+
+        city_from_config.to_string()
+    };
+
+    println!("city {:?}", city);
 
     let url = format!(
         "{}/weather?q={}&appId={}&units={}&lang={}",
@@ -49,10 +63,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //     datas.insert("City", res.name);
 //     datas.insert("City", res.name);
 //     datas.insert("City", res.name);
-
-
-
-
 // }
 
 fn print_weather (current: ApiResponse) {
