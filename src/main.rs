@@ -4,13 +4,15 @@ mod config_utils;
 mod structs;
 
 use colored::Colorize;
+use comfy_table::Table;
 use config_utils::get_config;
 use std::collections::HashMap;
 use std::env;
-use structs::ApiResponse;
-use structs::DataToPrint;
+// use structs::DataToPrint;
+use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse};
 
-const OPEN_WEATHER_URL: &str = "https://api.openweathermap.org/data/2.5";
+const OW_URL: &str = "https://api.openweathermap.org/data/2.5";
+const OW_GEOCODING_URL: &str = "https://api.openweathermap.org/geo/1.0/direct";
 const UNITS: &str = "metric";
 const LANG: &str = "fr";
 
@@ -29,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let api_key = config_keys
         .get("OPEN_WEATHER")
-        .expect("Get api key in config");
+        .expect("Error when getting api key in config");
 
     // Gets city name from command line argument or from config file
     let city = if args.len() > 1 {
@@ -42,49 +44,108 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         city_from_config.to_string()
     };
 
-    let url = format!(
-        "{}/weather?q={}&appId={}&units={}&lang={}",
-        OPEN_WEATHER_URL, city, api_key, UNITS, LANG
-    );
+    let coord_infos = match get_coordinates(&city, (&api_key).to_string()).await {
+        Some(infos) => infos,
+        None => {
+            println!("No coordinates found for {city}");
+            return Ok(());
+        }
+    };
 
-    let body: ApiResponse = reqwest::get(url).await?.json().await?;
+    println!("{:?}", coord_infos);
 
-    let data_to_print = extract_data(body);
+    let forecast = get_forecast(&api_key, coord_infos).await;
 
-    print_weather(data_to_print);
+    // let url = format!(
+    //     "{}/weather?q={}&appId={}&units={}&lang={}",
+
+    //     OW_URL, city, api_key, UNITS, LANG
+    // );
+
+    // let body: ApiResponse = reqwest::get(url).await?.json().await?;
+
+    // let data_to_print = extract_data(body);
+
+    // print_weather(data_to_print);
 
     Ok(())
 }
 
-fn extract_data(data: ApiResponse) -> [String; 4] {
-    return [
-        format!(
-            "{} | {}\n",
-            color(data.name, Color::title),
-            color(data.sys.country, Color::title)
-        ),
-        format!(
-            "{}°, {}",
-            color(data.main.temp.to_string(), Color::degrees),
-            data.weather.first().unwrap().description.to_string()
-        ),
-        format!(
-            "min: {}°",
-            color(data.main.temp_min.to_string(), Color::degrees)
-        ),
-        format!(
-            "max: {}°",
-            color(data.main.temp_max.to_string(), Color::degrees)
-        ),
-    ];
+async fn get_forecast(api_key: &str, infos: ApiCoordinates) -> ApiHourlyForecast {
+    println!("{:?}", infos.lat);
+
+    let lon = infos.lon.to_string();
+    let lat = infos.lat.to_string();
+
+    let url = format!("{OW_URL}/forecast?lat={lat}&lon={lon}&appid={api_key}");
+
+    println!("{url}");
+
+    let body: ApiHourlyForecast = reqwest::get(url)
+        .await
+        .expect("Error when getting hourly forecat")
+        .json()
+        .await
+        .expect("Error when deserializing hourly forecast");
+
+    println!("{:?}", body);
+
+    body
 }
 
-fn print_weather(data: [String; 4]) {
-    let to_print: String = data.iter().fold("".to_string(), |acc, text| {
-        return format!("{}  {}\n", acc, text);
-    });
+async fn get_coordinates(city: &String, api_key: String) -> Option<ApiCoordinates> {
+    let url = format!("{}?q={}&appid={}", OW_GEOCODING_URL, city, api_key);
 
-    println!("{}", to_print);
+    let body: Vec<ApiCoordinates> = reqwest::get(url)
+        .await
+        .expect("Error when getting coordinates")
+        .json()
+        .await
+        .expect("Error when deserializing coordinates");
+
+    body.into_iter().nth(0)
+}
+
+// fn extract_data(data: ApiResponse) -> [String; 4] {
+//     return [
+//         format!(
+//             "{} | {}\n",
+//             color(data.name, Color::title),
+//             color(data.sys.country, Color::title)
+//         ),
+//         format!(
+//             "{}°, {}",
+//             color(data.main.temp.to_string(), Color::degrees),
+//             data.weather.first().unwrap().description.to_string()
+//         ),
+//         format!(
+//             "min: {}°",
+//             color(data.main.temp_min.to_string(), Color::degrees)
+//         ),
+//         format!(
+//             "max: {}°",
+//             color(data.main.temp_max.to_string(), Color::degrees)
+//         ),
+//     ];
+// }
+
+fn print_weather(data: [String; 4]) {
+    let mut table = Table::new();
+
+    for (i, line) in data.iter().enumerate() {
+        if i == 0 {
+            table.set_header(vec![line]);
+        } else {
+            table.add_row(vec![line]);
+        }
+    }
+
+    println!("{table}");
+    // let to_print: String = data.iter().fold("".to_string(), |acc, text| {
+    //     return format!("{}  {}\n", acc, text);
+    // });
+
+    // println!("{}", to_print);
 }
 
 fn color(text: String, color: Color) -> String {

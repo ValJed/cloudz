@@ -2,28 +2,72 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiResponse {
-    pub coord: Coord,
+    // pub coord: Coord,
     pub weather: Vec<Weather>,
-    pub base: String,
+    // pub base: String,
     pub main: Main,
     pub visibility: i64,
     pub wind: Wind,
     pub clouds: Clouds,
     pub dt: i64,
-    pub sys: Sys,
-    pub timezone: i64,
-    pub id: i64,
-    pub name: String,
-    pub cod: i64,
+    pub dt_txt: String,
+    // pub sys: Sys,
+    // pub timezone: i64,
+    // pub id: i64,
+    // pub name: String,
+    // pub cod: i64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct DataToPrint {
-    pub City: String,
-    pub Weather: String,
-    pub Temperature: String,
-    pub Coordinates: String,
+pub struct ApiCoordinates {
+    pub name: String,
+    pub country: String,
+    // #[serde(default = "unknown")]
+    // pub state: String,
+    pub lat: f64,
+    pub lon: f64,
 }
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ApiHourlyForecast {
+    pub list: Vec<ApiResponse>,
+    pub city: City,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct City {
+    pub id: i64,
+    pub name: String,
+    pub coord: Coord,
+    pub country: String,
+    pub sunrise: i64,
+    pub sunset: i64,
+}
+
+// #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+// pub struct ApiCoordinates {
+//     pub coord: Coord,
+//     pub weather: Vec<Weather>,
+//     pub base: String,
+//     pub main: Main,
+//     pub visibility: i64,
+//     pub wind: Wind,
+//     pub clouds: Clouds,
+//     pub dt: i64,
+//     pub sys: Sys,
+//     pub timezone: i64,
+//     pub id: i64,
+//     pub name: String,
+//     pub cod: i64,
+// }
+
+// #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+// pub struct DataToPrint {
+//     pub city: String,
+//     pub weather: String,
+//     pub temperature: String,
+//     pub coordinates: String,
+// }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Coord {
@@ -69,4 +113,9 @@ pub struct Sys {
     pub country: String,
     pub sunrise: i64,
     pub sunset: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ForecastSys {
+    pod: String,
 }
