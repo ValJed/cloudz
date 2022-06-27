@@ -3,12 +3,15 @@
 mod config_utils;
 mod structs;
 
+use chrono::{DateTime, NaiveDateTime, Utc};
 use colored::Colorize;
 use comfy_table::Table;
 use config_utils::get_config;
+use regex::Regex;
 use std::collections::HashMap;
 use std::env;
 // use structs::DataToPrint;
+
 use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse};
 
 const OW_URL: &str = "https://api.openweathermap.org/data/2.5";
@@ -52,9 +55,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    println!("{:?}", coord_infos);
-
     let forecast = get_forecast(&api_key, coord_infos).await;
+
+    for time in forecast.list {
+        format_date(&time.dt);
+    }
 
     // let url = format!(
     //     "{}/weather?q={}&appId={}&units={}&lang={}",
@@ -69,6 +74,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // print_weather(data_to_print);
 
     Ok(())
+}
+
+fn format_date(date: &i64) {
+    let dt = NaiveDateTime::from_timestamp(*date, 0);
+    let datetime: DateTime<Utc> = DateTime::from_utc(dt, Utc);
+    let regex = Regex::new(r"\s+").unwrap();
+    // let day = t.day()
+    let time = datetime.format("%H:%M").to_string();
+    let _day = datetime.format("%a %b %e").to_string();
+
+    let day = regex.replace_all(&*_day, " ");
+
+    println!("day {}", day);
+    println!("_time {}", time);
+    // let formatted = format!("")
 }
 
 async fn get_forecast(api_key: &str, infos: ApiCoordinates) -> ApiHourlyForecast {
