@@ -57,9 +57,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let forecast = get_forecast(&api_key, coord_infos).await;
 
-    for time in forecast.list {
-        format_date(&time.dt);
-    }
+    // for time in forecast.list {
+    //     let list_time = format_date(&time.dt);
+    //
+    // }
+
+    let formatted: HashMap<String, String> =
+        forecast
+            .list
+            .iter()
+            .fold(HashMap::new(), |acc, hourly_wheather| {
+                let [day, hour] = format_date(&hourly_wheather.dt);
+
+                println!("{:?}", day);
+                println!("{}", hour);
+                println!("{:?}", hourly_wheather);
+                // println!(time[0]);
+                acc
+            });
 
     // let url = format!(
     //     "{}/weather?q={}&appId={}&units={}&lang={}",
@@ -76,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn format_date(date: &i64) {
+fn format_date(date: &i64) -> [String; 2] {
     let dt = NaiveDateTime::from_timestamp(*date, 0);
     let datetime: DateTime<Utc> = DateTime::from_utc(dt, Utc);
     let regex = Regex::new(r"\s+").unwrap();
@@ -84,22 +99,16 @@ fn format_date(date: &i64) {
     let time = datetime.format("%H:%M").to_string();
     let _day = datetime.format("%a %b %e").to_string();
 
-    let day = regex.replace_all(&*_day, " ");
+    let day = regex.replace_all(&*_day, " ").to_string();
 
-    println!("day {}", day);
-    println!("_time {}", time);
-    // let formatted = format!("")
+    [day, time]
 }
 
 async fn get_forecast(api_key: &str, infos: ApiCoordinates) -> ApiHourlyForecast {
-    println!("{:?}", infos.lat);
-
     let lon = infos.lon.to_string();
     let lat = infos.lat.to_string();
 
-    let url = format!("{OW_URL}/forecast?lat={lat}&lon={lon}&appid={api_key}");
-
-    println!("{url}");
+    let url = format!("{OW_URL}/forecast?lat={lat}&lon={lon}&appid={api_key}&units={UNITS}");
 
     let body: ApiHourlyForecast = reqwest::get(url)
         .await
@@ -107,8 +116,6 @@ async fn get_forecast(api_key: &str, infos: ApiCoordinates) -> ApiHourlyForecast
         .json()
         .await
         .expect("Error when deserializing hourly forecast");
-
-    println!("{:?}", body);
 
     body
 }
