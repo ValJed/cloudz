@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let api_key = config_keys
         .get("OPEN_WEATHER")
-        .expect("Error when getting api key in config");
+        .expect("Error when getting api key from config");
 
     // Gets city name from command line argument or from config file
     let city = if args.len() > 1 {
@@ -57,45 +57,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let forecast = get_forecast(&api_key, coord_infos).await;
 
-    // for time in forecast.list {
-    //     let list_time = format_date(&time.dt);
-    //
-    // }
+    let daily_forecasts = group_recast_by_day(forecast);
 
-    let formatted: HashMap<String, String> =
-        forecast
-            .list
-            .iter()
-            .fold(HashMap::new(), |acc, hourly_wheather| {
-                let [day, hour] = format_date(&hourly_wheather.dt);
-
-                println!("{:?}", day);
-                println!("{}", hour);
-                println!("{:?}", hourly_wheather);
-                // println!(time[0]);
-                acc
-            });
-
-    // let url = format!(
-    //     "{}/weather?q={}&appId={}&units={}&lang={}",
-
-    //     OW_URL, city, api_key, UNITS, LANG
-    // );
-
-    // let body: ApiResponse = reqwest::get(url).await?.json().await?;
-
-    // let data_to_print = extract_data(body);
-
-    // print_weather(data_to_print);
+    print_weather(daily_forecasts);
 
     Ok(())
+}
+
+fn group_recast_by_day(forecast: ApiHourlyForecast) -> HashMap<String, Vec<(String, ApiResponse)>> {
+    forecast
+        .list
+        .iter()
+        .fold(HashMap::new(), |mut acc, hourly_wheather| {
+            let [day, hour] = format_date(&hourly_wheather.dt);
+            // let mut collec: HashMap<String, Vec<(String, ApiResponse)>> = HashMap::new();
+
+            match acc.get(&day) {
+                Some(val) => {
+                    let mut clone = val.to_owned();
+
+                    let tup = (hour, hourly_wheather.to_owned());
+                    clone.push(tup);
+
+                    acc.insert(day, clone);
+                }
+                None => {
+                    acc.insert(day, vec![(hour, hourly_wheather.to_owned())]);
+                }
+            }
+
+            acc
+        })
 }
 
 fn format_date(date: &i64) -> [String; 2] {
     let dt = NaiveDateTime::from_timestamp(*date, 0);
     let datetime: DateTime<Utc> = DateTime::from_utc(dt, Utc);
     let regex = Regex::new(r"\s+").unwrap();
-    // let day = t.day()
     let time = datetime.format("%H:%M").to_string();
     let _day = datetime.format("%a %b %e").to_string();
 
@@ -156,18 +154,21 @@ async fn get_coordinates(city: &String, api_key: String) -> Option<ApiCoordinate
 //     ];
 // }
 
-fn print_weather(data: [String; 4]) {
-    let mut table = Table::new();
-
-    for (i, line) in data.iter().enumerate() {
-        if i == 0 {
-            table.set_header(vec![line]);
-        } else {
-            table.add_row(vec![line]);
-        }
+fn print_weather(daily_forecasts: HashMap<String, Vec<(String, ApiResponse)>>) {
+    for (key, value) in daily_forecasts {
+        println!("{:?}", key);
     }
 
-    println!("{table}");
+    // let mut table = Table::new();
+
+    // for (i, line) in data.iter().enumerate() {
+    //     if i == 0 {
+    //         table.set_header(vec![line]);
+    //     } else {
+    //         table.add_row(vec![line]);
+    //     }
+    // }
+
     // let to_print: String = data.iter().fold("".to_string(), |acc, text| {
     //     return format!("{}  {}\n", acc, text);
     // });
