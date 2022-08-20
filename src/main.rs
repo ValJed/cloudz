@@ -186,11 +186,12 @@ fn format_message(weather: ApiResponse) -> String {
     let feels = weather.main.feels_like;
     let pressure = weather.main.pressure;
     let humidity = weather.main.humidity;
-    let wind = weather.wind.speed;
+    let wind = (weather.wind.speed * 3.6 * 100.0).round() / 100.0;
+
     let test = color("temp", Color::Bold);
 
     format!(
-        "{desc}, {test}: {temp}°, feels like: {feels}°, pressure: {pressure}, humidity: {humidity}, wind speed: {wind}"
+        "{desc}, {test}: {temp}°, feels like: {feels}°, pressure: {pressure}, humidity: {humidity}, wind speed: {wind}km/h"
     )
 }
 
