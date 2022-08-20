@@ -20,8 +20,9 @@ const UNITS: &str = "metric";
 const LANG: &str = "fr";
 
 enum Color {
-    title,
-    degrees,
+    Title,
+    Bold,
+    Text,
 }
 
 #[tokio::main]
@@ -64,30 +65,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn group_recast_by_day(forecast: ApiHourlyForecast) -> HashMap<String, Vec<(String, ApiResponse)>> {
-    forecast
-        .list
-        .iter()
-        .fold(HashMap::new(), |mut acc, hourly_wheather| {
-            let [day, hour] = format_date(&hourly_wheather.dt);
-            // let mut collec: HashMap<String, Vec<(String, ApiResponse)>> = HashMap::new();
+fn group_recast_by_day(
+    forecast: ApiHourlyForecast,
+) -> (Vec<String>, HashMap<String, Vec<(String, ApiResponse)>>) {
+    let mut days_order = vec![];
 
-            match acc.get(&day) {
-                Some(val) => {
-                    let mut clone = val.to_owned();
+    let grouped: HashMap<String, Vec<(String, ApiResponse)>> =
+        forecast
+            .list
+            .iter()
+            .fold(HashMap::new(), |mut acc, hourly_wheather| {
+                let [day, hour] = format_date(&hourly_wheather.dt);
 
-                    let tup = (hour, hourly_wheather.to_owned());
-                    clone.push(tup);
+                match acc.get(&day) {
+                    Some(val) => {
+                        let mut clone = val.to_owned();
 
-                    acc.insert(day, clone);
+                        let tup = (hour, hourly_wheather.to_owned());
+                        clone.push(tup);
+
+                        acc.insert(day, clone);
+                    }
+                    None => {
+                        days_order.push(day.clone());
+                        acc.insert(day, vec![(hour, hourly_wheather.to_owned())]);
+                    }
                 }
-                None => {
-                    acc.insert(day, vec![(hour, hourly_wheather.to_owned())]);
-                }
-            }
 
-            acc
-        })
+                acc
+            });
+
+    (days_order, grouped)
 }
 
 fn format_date(date: &i64) -> [String; 2] {
@@ -119,7 +127,7 @@ async fn get_forecast(api_key: &str, infos: ApiCoordinates) -> ApiHourlyForecast
 }
 
 async fn get_coordinates(city: &String, api_key: String) -> Option<ApiCoordinates> {
-    let url = format!("{}?q={}&appid={}", OW_GEOCODING_URL, city, api_key);
+    let url = format!("{OW_GEOCODING_URL}?q={city}&appid={api_key}");
 
     let body: Vec<ApiCoordinates> = reqwest::get(url)
         .await
@@ -131,54 +139,71 @@ async fn get_coordinates(city: &String, api_key: String) -> Option<ApiCoordinate
     body.into_iter().nth(0)
 }
 
-// fn extract_data(data: ApiResponse) -> [String; 4] {
-//     return [
-//         format!(
-//             "{} | {}\n",
-//             color(data.name, Color::title),
-//             color(data.sys.country, Color::title)
-//         ),
-//         format!(
-//             "{}°, {}",
-//             color(data.main.temp.to_string(), Color::degrees),
-//             data.weather.first().unwrap().description.to_string()
-//         ),
-//         format!(
-//             "min: {}°",
-//             color(data.main.temp_min.to_string(), Color::degrees)
-//         ),
-//         format!(
-//             "max: {}°",
-//             color(data.main.temp_max.to_string(), Color::degrees)
-//         ),
-//     ];
-// }
+fn print_weather(
+    (days, daily_forecasts): (Vec<String>, HashMap<String, Vec<(String, ApiResponse)>>),
+) {
+    let mut table = Table::new();
 
-fn print_weather(daily_forecasts: HashMap<String, Vec<(String, ApiResponse)>>) {
-    for (key, value) in daily_forecasts {
-        println!("{:?}", key);
-    }
-
-    // let mut table = Table::new();
-
-    // for (i, line) in data.iter().enumerate() {
-    //     if i == 0 {
-    //         table.set_header(vec![line]);
-    //     } else {
-    //         table.add_row(vec![line]);
-    //     }
-    // }
-
-    // let to_print: String = data.iter().fold("".to_string(), |acc, text| {
-    //     return format!("{}  {}\n", acc, text);
+    // let table_header = days.fold(String::from("Meteo for"), |mut acc, day| {
+    //
     // });
 
-    // println!("{}", to_print);
+    table.set_header(vec![
+        color("Meteo forecast for the next days", Color::Title),
+        // color("Weather", Color::Bold),
+        // color("Temperature", Color::Bold),
+        // color("Feeling", Color::Bold),
+        // color("Pressure", Color::Bold),
+        // color("Humidity", Color::Bold),
+        // color("Wind", Color::Bold),
+    ]);
+
+    for day in days {
+        let colored_day = color(&day, Color::Title);
+        table.add_row(vec![&colored_day]);
+
+        let forecast = daily_forecasts.get(&day).unwrap();
+
+        for (hour, weather) in forecast {
+            let message = format_message(weather.to_owned());
+            let hour_colored = color(&hour, Color::Bold);
+
+            table.add_row(vec![&hour_colored, &message]);
+            // println!("{:?}", message);
+        }
+    }
+
+    // Table::discover_columns();
+
+    println!("{table}");
 }
 
-fn color(text: String, color: Color) -> String {
+fn format_message(weather: ApiResponse) -> String {
+    let desc = &weather.weather[0].description;
+    let temp = weather.main.temp;
+    // let temp_min = weather.main.temp_min;
+    // let temp_max = weather.main.temp_max;
+    let feels = weather.main.feels_like;
+    let pressure = weather.main.pressure;
+    let humidity = weather.main.humidity;
+    let wind = weather.wind.speed;
+    let test = color("temp", Color::Bold);
+
+    format!(
+        "{desc}, {test}: {temp}°, feels like: {feels}°, pressure: {pressure}, humidity: {humidity}, wind speed: {wind}"
+    )
+}
+
+fn color(text: &str, color: Color) -> String {
     match color {
-        Color::title => format!("{}", text).bold().red().to_string(),
-        Color::degrees => format!("{}", text).purple().to_string(),
+        Color::Title => format!("{}", text)
+            .bold()
+            .truecolor(201, 40, 45)
+            .to_string(),
+        Color::Bold => format!("{}", text)
+            .bold()
+            .truecolor(227, 227, 227)
+            .to_string(),
+        Color::Text => format!("{}", text).truecolor(227, 227, 227).to_string(),
     }
 }
