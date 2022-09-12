@@ -142,43 +142,37 @@ async fn get_coordinates(city: &String, api_key: String) -> Option<ApiCoordinate
 fn print_weather(
     (days, daily_forecasts): (Vec<String>, HashMap<String, Vec<(String, ApiResponse)>>),
 ) {
-    let mut table = Table::new();
-
-    // let table_header = days.fold(String::from("Meteo for"), |mut acc, day| {
-    //
-    // });
-
-    table.set_header(vec![
-        color("Meteo forecast for the next days", Color::Title),
-        // color("Weather", Color::Bold),
-        // color("Temperature", Color::Bold),
-        // color("Feeling", Color::Bold),
-        // color("Pressure", Color::Bold),
-        // color("Humidity", Color::Bold),
-        // color("Wind", Color::Bold),
-    ]);
+    println!(
+        "{}",
+        color("Meteo forecast for the next days", Color::Title)
+    );
 
     for day in days {
-        let colored_day = color(&day, Color::Title);
-        table.add_row(vec![&colored_day]);
+        let mut table = Table::new();
+
+        table.set_header(vec![
+            color(&day, Color::Title),
+            color("Weather", Color::Bold),
+            color("Temperature", Color::Bold),
+            color("Feeling", Color::Bold),
+            color("Pressure", Color::Bold),
+            color("Humidity", Color::Bold),
+            color("Wind", Color::Bold),
+        ]);
 
         let forecast = daily_forecasts.get(&day).unwrap();
 
         for (hour, weather) in forecast {
-            let message = format_message(weather.to_owned());
-            let hour_colored = color(&hour, Color::Bold);
+            let data = format_data(&hour, weather.to_owned());
 
-            table.add_row(vec![&hour_colored, &message]);
-            // println!("{:?}", message);
+            table.add_row(data);
         }
+
+        println!("{table}");
     }
-
-    // Table::discover_columns();
-
-    println!("{table}");
 }
 
-fn format_message(weather: ApiResponse) -> String {
+fn format_data(hour: &str, weather: ApiResponse) -> Vec<String> {
     let desc = &weather.weather[0].description;
     let temp = weather.main.temp;
     // let temp_min = weather.main.temp_min;
@@ -188,11 +182,15 @@ fn format_message(weather: ApiResponse) -> String {
     let humidity = weather.main.humidity;
     let wind = (weather.wind.speed * 3.6 * 100.0).round() / 100.0;
 
-    let test = color("temp", Color::Bold);
-
-    format!(
-        "{desc}, {test}: {temp}°, feels like: {feels}°, pressure: {pressure}, humidity: {humidity}, wind speed: {wind}km/h"
-    )
+    vec![
+        color(hour, Color::Bold),
+        desc.to_owned(),
+        temp.to_string(),
+        feels.to_string(),
+        pressure.to_string(),
+        humidity.to_string(),
+        wind.to_string(),
+    ]
 }
 
 fn color(text: &str, color: Color) -> String {
