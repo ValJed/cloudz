@@ -1,29 +1,22 @@
-// use serde::{Serialize, Deserialize};
-
 mod config_utils;
 mod structs;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use colored::Colorize;
-use comfy_table::Table;
+use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::*;
 use config_utils::get_config;
 use regex::Regex;
 use std::collections::HashMap;
 use std::env;
-// use structs::DataToPrint;
 
 use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse};
 
 const OW_URL: &str = "https://api.openweathermap.org/data/2.5";
 const OW_GEOCODING_URL: &str = "https://api.openweathermap.org/geo/1.0/direct";
 const UNITS: &str = "metric";
-const LANG: &str = "fr";
-
-enum Color {
-    Title,
-    Bold,
-    Text,
-}
+// const LANG: &str = "fr";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -58,14 +51,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let forecast = get_forecast(&api_key, coord_infos).await;
 
-    let daily_forecasts = group_recast_by_day(forecast);
+    let daily_forecasts = group_forecast_by_day(forecast);
 
-    print_weather(daily_forecasts);
+    print_weather(daily_forecasts, &city);
 
     Ok(())
 }
 
-fn group_recast_by_day(
+fn group_forecast_by_day(
     forecast: ApiHourlyForecast,
 ) -> (Vec<String>, HashMap<String, Vec<(String, ApiResponse)>>) {
     let mut days_order = vec![];
@@ -118,7 +111,7 @@ async fn get_forecast(api_key: &str, infos: ApiCoordinates) -> ApiHourlyForecast
 
     let body: ApiHourlyForecast = reqwest::get(url)
         .await
-        .expect("Error when getting hourly forecat")
+        .expect("Error when getting hourly forecast")
         .json()
         .await
         .expect("Error when deserializing hourly forecast");
@@ -141,28 +134,51 @@ async fn get_coordinates(city: &String, api_key: String) -> Option<ApiCoordinate
 
 fn print_weather(
     (days, daily_forecasts): (Vec<String>, HashMap<String, Vec<(String, ApiResponse)>>),
+    city: &String,
 ) {
     println!(
         "{}",
-        color("Meteo forecast for the next days", Color::Title)
+        format!("{} {}", "Meteo forecast", city)
+            .bold()
+            .truecolor(201, 40, 45)
+            .to_string()
     );
 
     for day in days {
         let mut table = Table::new();
 
-        table.set_header(vec![
-            color(&day, Color::Title),
-            color("Weather", Color::Bold),
-            color("Temperature", Color::Bold),
-            color("Feeling", Color::Bold),
-            color("Pressure", Color::Bold),
-            color("Humidity", Color::Bold),
-            color("Wind", Color::Bold),
-        ]);
+        table
+            .load_preset(UTF8_FULL)
+            .apply_modifier(UTF8_ROUND_CORNERS)
+            .set_header(vec![
+                Cell::new(&day)
+                    .fg(Color::Red)
+                    .add_attribute(Attribute::Bold),
+                Cell::new("Weather")
+                    .fg(Color::Green)
+                    .add_attribute(Attribute::Bold),
+                Cell::new("Temperature")
+                    .fg(Color::Green)
+                    .add_attribute(Attribute::Bold),
+                Cell::new("Feeling")
+                    .fg(Color::Green)
+                    .add_attribute(Attribute::Bold),
+                Cell::new("Pressure")
+                    .fg(Color::Green)
+                    .add_attribute(Attribute::Bold),
+                Cell::new("Humididy")
+                    .fg(Color::Green)
+                    .add_attribute(Attribute::Bold),
+                Cell::new("Wind")
+                    .fg(Color::Green)
+                    .add_attribute(Attribute::Bold),
+            ]);
 
         let forecast = daily_forecasts.get(&day).unwrap();
 
+        let mut count = 0;
         for (hour, weather) in forecast {
+            count = count + 1;
             let data = format_data(&hour, weather.to_owned());
 
             table.add_row(data);
@@ -172,7 +188,7 @@ fn print_weather(
     }
 }
 
-fn format_data(hour: &str, weather: ApiResponse) -> Vec<String> {
+fn format_data(hour: &str, weather: ApiResponse) -> Vec<Cell> {
     let desc = &weather.weather[0].description;
     let temp = weather.main.temp;
     // let temp_min = weather.main.temp_min;
@@ -183,26 +199,12 @@ fn format_data(hour: &str, weather: ApiResponse) -> Vec<String> {
     let wind = (weather.wind.speed * 3.6 * 100.0).round() / 100.0;
 
     vec![
-        color(hour, Color::Bold),
-        desc.to_owned(),
-        temp.to_string(),
-        feels.to_string(),
-        pressure.to_string(),
-        humidity.to_string(),
-        wind.to_string(),
+        Cell::new(hour).add_attribute(Attribute::Bold),
+        Cell::new(desc),
+        Cell::new(temp),
+        Cell::new(feels),
+        Cell::new(pressure),
+        Cell::new(humidity),
+        Cell::new(wind),
     ]
-}
-
-fn color(text: &str, color: Color) -> String {
-    match color {
-        Color::Title => format!("{}", text)
-            .bold()
-            .truecolor(201, 40, 45)
-            .to_string(),
-        Color::Bold => format!("{}", text)
-            .bold()
-            .truecolor(227, 227, 227)
-            .to_string(),
-        Color::Text => format!("{}", text).truecolor(227, 227, 227).to_string(),
-    }
 }
