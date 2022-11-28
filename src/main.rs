@@ -6,12 +6,11 @@ use colored::Colorize;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::*;
-use config_utils::get_config;
 use regex::Regex;
 use std::collections::HashMap;
 use std::env;
 
-use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse};
+use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse, Config};
 
 const OW_URL: &str = "https://api.openweathermap.org/data/2.5";
 const OW_GEOCODING_URL: &str = "https://api.openweathermap.org/geo/1.0/direct";
@@ -21,27 +20,27 @@ const UNITS: &str = "metric";
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    let config_keys = ["OPEN_WEATHER".to_string(), "CITY".to_string()];
 
-    // Get config file content
-    let config_keys = get_config(config_keys);
+    let config: Config = confy::load("cloudz").expect("Error when trying to access config file");
 
-    let api_key = config_keys
-        .get("OPEN_WEATHER")
-        .expect("Error when getting api key from config");
+    if config.ow_api_key.is_empty() {
+        println!("You need to specify your open weather api key in your confg file");
+        return Ok(());
+    }
+
+    if args.len() <= 1 && config.default_city.is_empty() {
+        println!("You need to define a default city in your config file if you don't provide one");
+        return Ok(());
+    }
 
     // Gets city name from command line argument or from config file
     let city = if args.len() > 1 {
         args[1].to_string()
     } else {
-        let city_from_config = config_keys
-            .get("CITY")
-            .expect("Should find a default city in config if none is passed as argument.");
-
-        city_from_config.to_string()
+        config.default_city
     };
 
-    let coord_infos = match get_coordinates(&city, (&api_key).to_string()).await {
+    let coord_infos = match get_coordinates(&city, &config.ow_api_key).await {
         Some(infos) => infos,
         None => {
             println!("No coordinates found for {city}");
@@ -49,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let forecast = get_forecast(&api_key, coord_infos).await;
+    let forecast = get_forecast(&config.ow_api_key, coord_infos).await;
 
     let daily_forecasts = group_forecast_by_day(forecast);
 
@@ -119,7 +118,7 @@ async fn get_forecast(api_key: &str, infos: ApiCoordinates) -> ApiHourlyForecast
     body
 }
 
-async fn get_coordinates(city: &String, api_key: String) -> Option<ApiCoordinates> {
+async fn get_coordinates(city: &String, api_key: &String) -> Option<ApiCoordinates> {
     let url = format!("{OW_GEOCODING_URL}?q={city}&appid={api_key}");
 
     let body: Vec<ApiCoordinates> = reqwest::get(url)
@@ -176,9 +175,7 @@ fn print_weather(
 
         let forecast = daily_forecasts.get(&day).unwrap();
 
-        let mut count = 0;
         for (hour, weather) in forecast {
-            count = count + 1;
             let data = format_data(&hour, weather.to_owned());
 
             table.add_row(data);
