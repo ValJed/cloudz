@@ -1,5 +1,20 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Config {
+    pub default_city: String,
+    pub ow_api_key: String,
+}
+
+impl ::std::default::Default for Config {
+    fn default() -> Self {
+        Self {
+            default_city: "".into(),
+            ow_api_key: "".into(),
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiResponse {
     // pub coord: Coord,
