@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(default)]
 pub struct Config {
     pub default_city: String,
     pub ow_api_key: String,
+    pub units_system: String
 }
 
 impl ::std::default::Default for Config {
@@ -11,6 +13,7 @@ impl ::std::default::Default for Config {
         Self {
             default_city: "".into(),
             ow_api_key: "".into(),
+            units_system: "".into()
         }
     }
 }
