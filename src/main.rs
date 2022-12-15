@@ -14,7 +14,6 @@ use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse, Config};
 
 const OW_URL: &str = "https://api.openweathermap.org/data/2.5";
 const OW_GEOCODING_URL: &str = "https://api.openweathermap.org/geo/1.0/direct";
-const UNITS: &str = "metric";
 // const LANG: &str = "fr";
 
 #[tokio::main]
@@ -33,6 +32,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
+    let units_system: String = if !config.units_system.is_empty() {
+        print!("heeere");
+        config.units_system
+    } else {
+
+        println!("tooo");
+        "metric".into()
+    };
+
     // Gets city name from command line argument or from config file
     let city = if args.len() > 1 {
         args[1].to_string()
@@ -48,11 +56,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let forecast = get_forecast(&config.ow_api_key, coord_infos).await;
+    let forecast = get_forecast(&config.ow_api_key, coord_infos, &units_system).await;
 
     let daily_forecasts = group_forecast_by_day(forecast);
 
-    print_weather(daily_forecasts, &city);
+    print_weather(daily_forecasts, &city, &units_system);
 
     Ok(())
 }
@@ -102,11 +110,11 @@ fn format_date(date: &i64) -> [String; 2] {
     [day, time]
 }
 
-async fn get_forecast(api_key: &str, infos: ApiCoordinates) -> ApiHourlyForecast {
+async fn get_forecast(api_key: &str, infos: ApiCoordinates, units_system: &String) -> ApiHourlyForecast {
     let lon = infos.lon.to_string();
     let lat = infos.lat.to_string();
 
-    let url = format!("{OW_URL}/forecast?lat={lat}&lon={lon}&appid={api_key}&units={UNITS}");
+    let url = format!("{OW_URL}/forecast?lat={lat}&lon={lon}&appid={api_key}&units={units_system}");
 
     let body: ApiHourlyForecast = reqwest::get(url)
         .await
@@ -134,6 +142,7 @@ async fn get_coordinates(city: &String, api_key: &String) -> Option<ApiCoordinat
 fn print_weather(
     (days, daily_forecasts): (Vec<String>, HashMap<String, Vec<(String, ApiResponse)>>),
     city: &String,
+    units_system: &String
 ) {
     println!(
         "{}",
@@ -176,7 +185,7 @@ fn print_weather(
         let forecast = daily_forecasts.get(&day).unwrap();
 
         for (hour, weather) in forecast {
-            let data = format_data(&hour, weather.to_owned());
+            let data = format_data(&hour, weather.to_owned(), &units_system);
 
             table.add_row(data);
         }
@@ -185,12 +194,17 @@ fn print_weather(
     }
 }
 
-fn format_data(hour: &str, weather: ApiResponse) -> Vec<Cell> {
+fn format_data(hour: &str, weather: ApiResponse, units_system: &String) -> Vec<Cell> {
+    let temp_symbol = if units_system == "metric" {
+        "°"
+    } else {
+        " °F"
+    };
     let desc = &weather.weather[0].description;
-    let temp = weather.main.temp;
+    let temp = format!("{}{}",  weather.main.temp, temp_symbol);
     // let temp_min = weather.main.temp_min;
     // let temp_max = weather.main.temp_max;
-    let feels = weather.main.feels_like;
+    let feels = format!("{}{}", weather.main.feels_like, temp_symbol); 
     let pressure = weather.main.pressure;
     let humidity = weather.main.humidity;
     let wind = (weather.wind.speed * 3.6 * 100.0).round() / 100.0;
