@@ -10,7 +10,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::env;
 
-use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse, Config};
+use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse, City, Config};
 
 const OW_URL: &str = "https://api.openweathermap.org/data/2.5";
 const OW_GEOCODING_URL: &str = "https://api.openweathermap.org/geo/1.0/direct";
@@ -33,11 +33,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let units_system: String = if !config.units_system.is_empty() {
-        print!("heeere");
         config.units_system
     } else {
-
-        println!("tooo");
         "metric".into()
     };
 
@@ -58,15 +55,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let forecast = get_forecast(&config.ow_api_key, coord_infos, &units_system).await;
 
-    let daily_forecasts = group_forecast_by_day(forecast);
+    let daily_forecasts = group_forecast_by_day(&forecast);
 
-    print_weather(daily_forecasts, &city, &units_system);
+    print_weather(daily_forecasts, &forecast.city, &units_system);
 
     Ok(())
 }
 
 fn group_forecast_by_day(
-    forecast: ApiHourlyForecast,
+    forecast: &ApiHourlyForecast,
 ) -> (Vec<String>, HashMap<String, Vec<(String, ApiResponse)>>) {
     let mut days_order = vec![];
 
@@ -141,14 +138,13 @@ async fn get_coordinates(city: &String, api_key: &String) -> Option<ApiCoordinat
 
 fn print_weather(
     (days, daily_forecasts): (Vec<String>, HashMap<String, Vec<(String, ApiResponse)>>),
-    city: &String,
+    city: &City,
     units_system: &String
 ) {
     println!(
-        "{}",
-        format!("{} {}", "Meteo forecast", city)
+        "\n\n{}",
+        format!("{}, {}", city.name, city.country)
             .bold()
-            .truecolor(201, 40, 45)
             .to_string()
     );
 
@@ -170,10 +166,7 @@ fn print_weather(
                     .add_attribute(Attribute::Bold),
                 Cell::new("Feeling")
                     .fg(Color::Green)
-                    .add_attribute(Attribute::Bold),
-                Cell::new("Pressure")
-                    .fg(Color::Green)
-                    .add_attribute(Attribute::Bold),
+                   .add_attribute(Attribute::Bold),
                 Cell::new("Humididy")
                     .fg(Color::Green)
                     .add_attribute(Attribute::Bold),
@@ -202,19 +195,19 @@ fn format_data(hour: &str, weather: ApiResponse, units_system: &String) -> Vec<C
     };
     let desc = &weather.weather[0].description;
     let temp = format!("{}{}",  weather.main.temp, temp_symbol);
-    // let temp_min = weather.main.temp_min;
-    // let temp_max = weather.main.temp_max;
     let feels = format!("{}{}", weather.main.feels_like, temp_symbol); 
-    let pressure = weather.main.pressure;
-    let humidity = weather.main.humidity;
-    let wind = (weather.wind.speed * 3.6 * 100.0).round() / 100.0;
+    let humidity = format!("{}%", weather.main.humidity); 
+    let wind = if units_system == "metric" {
+        format!("{} km/h", (weather.wind.speed * 3.6 * 100.0).round() / 100.0)
+    } else {
+        format!("{} mph", weather.wind.speed)
+    };
 
     vec![
         Cell::new(hour).add_attribute(Attribute::Bold),
         Cell::new(desc),
         Cell::new(temp),
         Cell::new(feels),
-        Cell::new(pressure),
         Cell::new(humidity),
         Cell::new(wind),
     ]
