@@ -14,13 +14,19 @@ use structs::{ApiCoordinates, ApiHourlyForecast, ApiResponse, City, Config};
 
 const OW_URL: &str = "https://api.openweathermap.org/data/2.5";
 const OW_GEOCODING_URL: &str = "https://api.openweathermap.org/geo/1.0/direct";
-// const LANG: &str = "fr";
+const HELP_TEXT: &str = "Usage:\ncloudz [city]";
+const HELP_SIGNS: [&str; 2] = ["help", "--help"];
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
     let config: Config = confy::load("cloudz", "config").expect("Error when trying to access config file");
+
+    if HELP_SIGNS.contains(&args[1].trim()) {
+        println!("{}", HELP_TEXT);
+        return Ok(());
+    }
 
     if config.ow_api_key.is_empty() {
         println!("You need to specify your open weather api key in your confg file");
