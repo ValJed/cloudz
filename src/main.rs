@@ -20,7 +20,7 @@ const OW_GEOCODING_URL: &str = "https://api.openweathermap.org/geo/1.0/direct";
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
-    let config: Config = confy::load("cloudz").expect("Error when trying to access config file");
+    let config: Config = confy::load("cloudz", "config").expect("Error when trying to access config file");
 
     if config.ow_api_key.is_empty() {
         println!("You need to specify your open weather api key in your confg file");
@@ -31,6 +31,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("You need to define a default city in your config file if you don't provide one");
         return Ok(());
     }
+    println!("{}", config.lang);
+
+    let lang: String = if !config.lang.is_empty() {
+        println!("empty");
+        config.lang
+    } else {
+        "en".into()
+    };
 
     let units_system: String = if !config.units_system.is_empty() {
         config.units_system
@@ -53,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let forecast = get_forecast(&config.ow_api_key, coord_infos, &units_system).await;
+    let forecast = get_forecast(&config.ow_api_key, coord_infos, &units_system, &lang).await;
 
     let daily_forecasts = group_forecast_by_day(&forecast);
 
@@ -107,11 +115,11 @@ fn format_date(date: &i64) -> [String; 2] {
     [day, time]
 }
 
-async fn get_forecast(api_key: &str, infos: ApiCoordinates, units_system: &String) -> ApiHourlyForecast {
+async fn get_forecast(api_key: &str, infos: ApiCoordinates, units_system: &String, lang: &String) -> ApiHourlyForecast {
     let lon = infos.lon.to_string();
     let lat = infos.lat.to_string();
 
-    let url = format!("{OW_URL}/forecast?lat={lat}&lon={lon}&appid={api_key}&units={units_system}");
+    let url = format!("{OW_URL}/forecast?lat={lat}&lon={lon}&appid={api_key}&units={units_system}&lang={lang}");
 
     let body: ApiHourlyForecast = reqwest::get(url)
         .await

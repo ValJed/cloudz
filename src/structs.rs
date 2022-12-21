@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub default_city: String,
     pub ow_api_key: String,
-    pub units_system: String
+    pub units_system: String,
+    pub lang: String
 }
 
 impl ::std::default::Default for Config {
@@ -13,7 +14,8 @@ impl ::std::default::Default for Config {
         Self {
             default_city: "".into(),
             ow_api_key: "".into(),
-            units_system: "".into()
+            units_system: "".into(),
+            lang: "".into()
         }
     }
 }
