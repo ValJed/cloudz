@@ -1,4 +1,3 @@
-mod config_utils;
 mod structs;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -23,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config: Config = confy::load("cloudz", "config").expect("Error when trying to access config file");
 
-    if HELP_SIGNS.contains(&args[1].trim()) {
+    if args.len() >= 2 && HELP_SIGNS.contains(&args[1].trim()) {
         println!("{}", HELP_TEXT);
         return Ok(());
     }
